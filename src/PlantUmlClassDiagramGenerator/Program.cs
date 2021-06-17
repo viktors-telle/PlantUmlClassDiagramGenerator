@@ -31,12 +31,6 @@ namespace PlantUmlClassDiagramGenerator
 
         static int Main(string[] args)
         {
-            args = new[]
-            {
-                @"C:\Git\clients\contract\Commands", "Input", "-dir", "-public", "-createAssociation", "-allInOne",
-                "-excludeInheritance"
-            };
-            //args = new[] { @"C:\Git\clients\contract\Events", "Output", "-dir", "-public", "-createAssociation", "-allInOne", "-excludeInheritance" };
             Dictionary<string, string> parameters = MakeParameters(args);
             if (!parameters.ContainsKey("in"))
             {
