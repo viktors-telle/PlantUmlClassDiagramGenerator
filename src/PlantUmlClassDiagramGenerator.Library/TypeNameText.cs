@@ -12,7 +12,7 @@ namespace PlantUmlClassDiagramGenerator.Library
         {
             var identifier = syntax.Identifier.Text;
             var typeArgs = string.Empty;
-            if (syntax is GenericNameSyntax genericName && genericName.TypeArgumentList != null)
+            if (syntax is GenericNameSyntax genericName)
             {
                 var count = genericName.TypeArgumentList.Arguments.Count;
                 identifier = $"\"{identifier}`{count}\"";
@@ -26,6 +26,16 @@ namespace PlantUmlClassDiagramGenerator.Library
             {
                 Identifier = identifier,
                 TypeArguments = typeArgs
+            };
+        }
+        
+        public static TypeNameText From(PropertyDeclarationSyntax syntax)
+        {
+            var identifier = (syntax.Type as NullableTypeSyntax)?.ElementType.ToString();
+            return new TypeNameText
+            {
+                Identifier = identifier,
+                TypeArguments = string.Empty
             };
         }
 

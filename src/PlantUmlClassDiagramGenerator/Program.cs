@@ -18,32 +18,47 @@ namespace PlantUmlClassDiagramGenerator
             Switch
         }
 
-        static readonly Dictionary<string, OptionType> options = new Dictionary<string, OptionType>()
+        private static readonly Dictionary<string, OptionType> Options = new()
         {
             ["-dir"] = OptionType.Switch,
             ["-public"] = OptionType.Switch,
             ["-ignore"] = OptionType.Value,
             ["-excludePaths"] = OptionType.Value,
             ["-createAssociation"] = OptionType.Switch,
-            ["-allInOne"] = OptionType.Switch
+            ["-allInOne"] = OptionType.Switch,
+            ["-excludeInheritance"] = OptionType.Switch
         };
 
         static int Main(string[] args)
         {
+            args = new[]
+            {
+                @"C:\Git\clients\contract\Commands", "Input", "-dir", "-public", "-createAssociation", "-allInOne",
+                "-excludeInheritance"
+            };
+            //args = new[] { @"C:\Git\clients\contract\Events", "Output", "-dir", "-public", "-createAssociation", "-allInOne", "-excludeInheritance" };
             Dictionary<string, string> parameters = MakeParameters(args);
             if (!parameters.ContainsKey("in"))
             {
                 Console.WriteLine("Specify a source file name or directory name.");
                 return -1;
             }
+
             if (parameters.ContainsKey("-dir"))
             {
-                if (!GeneratePlantUmlFromDir(parameters)) { return -1; }
+                if (!GeneratePlantUmlFromDir(parameters))
+                {
+                    return -1;
+                }
             }
             else
             {
-                if (!GeneratePlantUmlFromFile(parameters)) { return -1; }
+                if (!GeneratePlantUmlFromFile(parameters))
+                {
+                    return -1;
+                }
             }
+
             return 0;
         }
 
@@ -55,6 +70,7 @@ namespace PlantUmlClassDiagramGenerator
                 Console.WriteLine($"\"{inputFileName}\" does not exist.");
                 return false;
             }
+
             string outputFileName;
             if (parameters.ContainsKey("out"))
             {
@@ -85,7 +101,13 @@ namespace PlantUmlClassDiagramGenerator
 
                 using var filestream = new FileStream(outputFileName, FileMode.Create, FileAccess.Write);
                 using var writer = new StreamWriter(filestream);
-                var gen = new ClassDiagramGenerator(writer, "    ", ignoreAcc, parameters.ContainsKey("-createAssociation"));
+                var gen = new ClassDiagramGenerator(
+                    writer,
+                    "    ",
+                    ignoreAcc,
+                    parameters.ContainsKey("-createAssociation"),
+                    parameters.ContainsKey("-excludeInheritance")
+                );
                 gen.Generate(root);
             }
             catch (Exception e)
@@ -93,6 +115,7 @@ namespace PlantUmlClassDiagramGenerator
                 Console.WriteLine(e);
                 return false;
             }
+
             return true;
         }
 
@@ -127,6 +150,7 @@ namespace PlantUmlClassDiagramGenerator
             {
                 excludePaths = File.ReadAllLines(pumlexclude).ToList();
             }
+
             if (parameters.ContainsKey("-excludePaths"))
             {
                 excludePaths.AddRange(parameters["-excludePaths"].Split(','));
@@ -147,6 +171,7 @@ namespace PlantUmlClassDiagramGenerator
                     Console.WriteLine($"Skipped \"{inputFile}\"...");
                     continue;
                 }
+
                 Console.WriteLine($"Processing \"{inputFile}\"...");
                 try
                 {
@@ -163,7 +188,13 @@ namespace PlantUmlClassDiagramGenerator
 
                         using var filestream = new FileStream(outputFile, FileMode.Create, FileAccess.Write);
                         using var writer = new StreamWriter(filestream);
-                        var gen = new ClassDiagramGenerator(writer, "    ", ignoreAcc, parameters.ContainsKey("-createAssociation"));
+                        var gen = new ClassDiagramGenerator(
+                            writer,
+                            "    ",
+                            ignoreAcc,
+                            parameters.ContainsKey("-createAssociation"),
+                            parameters.ContainsKey("-excludeInheritance")
+                        );
                         gen.Generate(root);
                     }
 
@@ -187,6 +218,7 @@ namespace PlantUmlClassDiagramGenerator
                     error = true;
                 }
             }
+
             includeRefs.AppendLine("@enduml");
             File.WriteAllText(CombinePath(outputRoot, "include.puml"), includeRefs.ToString());
 
@@ -195,6 +227,7 @@ namespace PlantUmlClassDiagramGenerator
                 Console.WriteLine("There were files that could not be processed.");
                 return false;
             }
+
             return true;
         }
 
@@ -204,7 +237,7 @@ namespace PlantUmlClassDiagramGenerator
             if (parameters.ContainsKey("-public"))
             {
                 ignoreAcc = Accessibilities.Private | Accessibilities.Internal
-                    | Accessibilities.Protected | Accessibilities.ProtectedInternal;
+                                                    | Accessibilities.Protected | Accessibilities.ProtectedInternal;
             }
             else if (parameters.ContainsKey("-ignore"))
             {
@@ -217,6 +250,7 @@ namespace PlantUmlClassDiagramGenerator
                     }
                 }
             }
+
             return ignoreAcc;
         }
 
@@ -234,9 +268,9 @@ namespace PlantUmlClassDiagramGenerator
                     continue;
                 }
 
-                if (options.ContainsKey(arg))
+                if (Options.ContainsKey(arg))
                 {
-                    if (options[arg] == OptionType.Value)
+                    if (Options[arg] == OptionType.Value)
                     {
                         currentKey = arg;
                     }
@@ -254,14 +288,15 @@ namespace PlantUmlClassDiagramGenerator
                     parameters.Add("out", arg);
                 }
             }
+
             return parameters;
         }
 
         private static string CombinePath(string first, string second)
         {
             return first.TrimEnd(Path.DirectorySeparatorChar)
-                + Path.DirectorySeparatorChar
-                + second.TrimStart(Path.DirectorySeparatorChar);
+                   + Path.DirectorySeparatorChar
+                   + second.TrimStart(Path.DirectorySeparatorChar);
         }
     }
 }

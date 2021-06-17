@@ -12,12 +12,12 @@ namespace PlantUmlClassDiagramGenerator.Library
         public void AddInheritanceFrom(TypeDeclarationSyntax syntax)
         {
             if (syntax.BaseList == null) return;
-
+            
             var subTypeName = TypeNameText.From(syntax);
-
-            foreach (var typeStntax in syntax.BaseList.Types)
+            
+            foreach (var baseTypeSyntax in syntax.BaseList.Types)
             {
-                if (!(typeStntax.Type is SimpleNameSyntax typeNameSyntax)) continue;
+                if (!(baseTypeSyntax.Type is SimpleNameSyntax typeNameSyntax)) continue;
                 var baseTypeName = TypeNameText.From(typeNameSyntax);
                 items.Add(new Relationship(baseTypeName, subTypeName, "<|--", baseTypeName.TypeArguments));             
             }
@@ -25,7 +25,8 @@ namespace PlantUmlClassDiagramGenerator.Library
 
         public void AddInnerclassRelationFrom(SyntaxNode node)
         {
-            if (!(node.Parent is BaseTypeDeclarationSyntax outerTypeNode) || !(node is BaseTypeDeclarationSyntax innerTypeNode)) return;
+            if (!(node.Parent is BaseTypeDeclarationSyntax outerTypeNode) ||
+                !(node is BaseTypeDeclarationSyntax innerTypeNode)) return;
 
             var outerTypeName = TypeNameText.From(outerTypeNode);
             var innerTypeName = TypeNameText.From(innerTypeNode);
@@ -34,24 +35,40 @@ namespace PlantUmlClassDiagramGenerator.Library
 
         public void AddAssociationFrom(FieldDeclarationSyntax node, VariableDeclaratorSyntax field)
         {
-            if (!(node.Declaration.Type is SimpleNameSyntax baseNode) || !(node.Parent is BaseTypeDeclarationSyntax subNode)) return;
+            if (!(node.Declaration.Type is SimpleNameSyntax baseNode) ||
+                !(node.Parent is BaseTypeDeclarationSyntax subNode)) return;
 
             var symbol = field.Initializer == null ? "-->" : "o->";
 
             var baseName = TypeNameText.From(baseNode);
             var subName = TypeNameText.From(subNode);
-            items.Add(new Relationship(subName, baseName, symbol, "", field.Identifier.ToString() + baseName.TypeArguments));
+            items.Add(new Relationship(subName, baseName, symbol, "",
+                field.Identifier.ToString() + baseName.TypeArguments));
         }
 
         public void AddAssociationFrom(PropertyDeclarationSyntax node)
         {
-            if (!(node.Type is SimpleNameSyntax baseNode) || !(node.Parent is BaseTypeDeclarationSyntax subNode)) return;
+            if (node.Parent is not BaseTypeDeclarationSyntax subNode) return;
+
+            var baseName = node.Type switch
+            {
+                SimpleNameSyntax type => TypeNameText.From(type),
+                NullableTypeSyntax => TypeNameText.From(node),
+                _ => null
+            };
+
+            if (baseName == null) return;
 
             var symbol = node.Initializer == null ? "-->" : "o->";
-
-            var baseName = TypeNameText.From(baseNode);
+            
             var subName = TypeNameText.From(subNode);
-            items.Add(new Relationship(subName, baseName, symbol, "", node.Identifier.ToString() + baseName.TypeArguments));
+            items.Add(new Relationship(
+                subName, 
+                baseName, 
+                symbol, 
+                "",
+                node.Identifier + baseName.TypeArguments)
+            );
         }
 
         public IEnumerator<Relationship> GetEnumerator()
